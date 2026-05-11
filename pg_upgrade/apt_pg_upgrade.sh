@@ -19,8 +19,8 @@ set -euxo pipefail
 # Variables
 # ============================================================
 
-OLD_VER=16
-NEW_VER=17
+OLD_VER=17
+NEW_VER=18
 
 SERVICE_NAME=ndb-postgresql.service
 
@@ -32,7 +32,12 @@ BASE_PGDATA=$(sudo -u postgres psql -tA -c "SHOW data_directory;" 2>/dev/null \
   | tr -d '[:space:]')
 
 if [ -z "$BASE_PGDATA" ]; then
-  BASE_PGDATA=$(grep -oP '(?<=-D\s)\S+' \
+  # Look for `Environment=PGDATA=<path>` first (the typical NDB pattern,
+  # where ExecStart references ${PGDATA}). Fall back to a literal
+  # `-D /<path>` argument on ExecStart for unit files that hardcode it.
+  # The leading `/` on the second alternative skips variable references
+  # like `-D ${PGDATA}`, which would otherwise match `\S+`.
+  BASE_PGDATA=$(grep -oP '^Environment=PGDATA=\K\S+|(?<=-D\s)/\S+' \
     "/etc/systemd/system/$SERVICE_NAME" 2>/dev/null \
     | head -n1)
 fi
@@ -157,14 +162,18 @@ sudo -iu postgres
 # Variables under postgres user
 # ============================================================
 
-export OLD_VER=16
-export NEW_VER=17
+export OLD_VER=17
+export NEW_VER=18
 export SERVICE_NAME=ndb-postgresql.service
 
 # PostgreSQL is already stopped at this point, so SHOW data_directory
-# is not available. Parse the data directory from the systemd unit file.
+# is not available. Parse the data directory from the systemd unit file:
+# prefer `Environment=PGDATA=<path>` (the typical NDB pattern, where
+# ExecStart uses `-D ${PGDATA}`), falling back to a literal `-D /<path>`
+# on ExecStart. The leading `/` on the second alternative ensures we
+# don't accidentally match a variable reference like `-D ${PGDATA}`.
 
-export PGDATA=$(grep -oP '(?<=-D\s)\S+' \
+export PGDATA=$(grep -oP '^Environment=PGDATA=\K\S+|(?<=-D\s)/\S+' \
   /etc/systemd/system/$SERVICE_NAME 2>/dev/null \
   | head -n1)
 
@@ -370,8 +379,8 @@ sudo sed -i \
 
 sudo -iu postgres
 
-OLD_VER=16
-NEW_VER=17
+OLD_VER=17
+NEW_VER=18
 
 if [ -f ~/.bash_profile ]; then
   sed -i \
@@ -430,7 +439,7 @@ sudo systemctl status $SERVICE_NAME --no-pager -l
 
 sudo -iu postgres
 
-export NEW_VER=17
+export NEW_VER=18
 
 /usr/lib/postgresql/$NEW_VER/bin/psql \
   -U postgres \
