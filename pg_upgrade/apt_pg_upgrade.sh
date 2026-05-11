@@ -1,259 +1,14 @@
-# ============================================================
-# Install PostgreSQL 17 binaries
-# ============================================================
-
-sudo apt update
-
-sudo apt install -y \
-  wget \
-  gnupg2 \
-  lsb-release \
-  ca-certificates
-
-wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
-sudo gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
-
-echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] \
-http://apt.postgresql.org/pub/repos/apt \
-$(lsb_release -cs)-pgdg main" | \
-sudo tee /etc/apt/sources.list.d/pgdg.list
-
-# START HERE
-sudo apt update
-
-sudo apt install -y \
-  postgresql-16 \
-  postgresql-17
-
-
-# ============================================================
-# Verify binaries
-# ============================================================
-
-/usr/lib/postgresql/16/bin/postgres --version
-/usr/lib/postgresql/17/bin/postgres --version
-
-
-# ============================================================
-# Check existing cluster directories
-# ============================================================
-
-sudo find /pg_data -maxdepth 2 -name PG_VERSION
-
-# Expected:
-# /pg_data/PG16/PG_VERSION
-
-
-# ============================================================
-# Stop Nutanix postgres service
-# ============================================================
-
-sudo systemctl stop ndb-postgresql.service
-
-ps -ef | grep postgres
-
-# Ensure no postgres processes remain
-
-
-# ============================================================
-# Inspect Nutanix service config
-# ============================================================
-
-systemctl cat ndb-postgresql.service
-
-
-# ============================================================
-# Prepare PG17 target directory
-# ============================================================
-
-sudo -iu postgres
-
-rm -rf /pg_data/PG17
-
-mkdir -p /pg_data/PG17
-
-chmod 700 /pg_data/PG17
-
-
-# ============================================================
-# Initialize empty PG17 cluster
-# ============================================================
-
-/usr/lib/postgresql/17/bin/initdb \
-  -D /pg_data/PG17
-
-
-# ============================================================
-# Verify initialization
-# ============================================================
-
-cat /pg_data/PG17/PG_VERSION
-
-# Expected:
-# 17
-
-
-# ============================================================
-# Optional: temporarily relax local auth for pg_upgrade
-# ============================================================
-
-vi /pg_data/PG16/pg_hba.conf
-
-# Temporarily ensure:
-#
-# local   all   all   peer
-
-
-# ============================================================
-# Run pg_upgrade
-# ============================================================
-
-/usr/lib/postgresql/17/bin/pg_upgrade \
-  -b /usr/lib/postgresql/16/bin/ \
-  -B /usr/lib/postgresql/17/bin/ \
-  -d /pg_data/PG16 \
-  -D /pg_data/PG17 \
-  -U postgres \
-  --link
-
-
-# ============================================================
-# Start upgraded PG17 cluster manually first
-# ============================================================
-
-/usr/lib/postgresql/17/bin/pg_ctl \
-  -D /pg_data/PG17 \
-  -l /pg_data/PG17/server.log \
-  start
-
-
-# ============================================================
-# Validate upgrade
-# ============================================================
-
-/usr/lib/postgresql/17/bin/psql -U postgres -c "SELECT version();"
-
-/usr/lib/postgresql/17/bin/psql -l
-
-
-# ============================================================
-# Stop manually started cluster
-# ============================================================
-
-/usr/lib/postgresql/17/bin/pg_ctl \
-  -D /pg_data/PG17 \
-  stop
-
-
-# ============================================================
-# Update Nutanix systemd service
-# ============================================================
-
-exit
-
-sudo vi /etc/systemd/system/ndb-postgresql.service
-
-
-# Update ExecStart from PG16 to PG17:
-#
-# OLD:
-# ExecStart=/usr/lib/postgresql/16/bin/postgres -D /pg_data/PG16
-#
-# NEW:
-# ExecStart=/usr/lib/postgresql/17/bin/postgres -D /pg_data/PG17
-#
-# Also update:
-#
-# Environment=PGDATA=/pg_data/PG17
-#
-# Ensure:
-# - uses postgres (not postmaster)
-# - uses PG17 binaries
-# - uses PG17 data directory
-
-
-# ============================================================
-# Reload systemd
-# ============================================================
-
-sudo systemctl daemon-reexec
-
-sudo systemctl daemon-reload
-
-
-# ============================================================
-# Start upgraded service
-# ============================================================
-
-sudo systemctl start ndb-postgresql.service
-
-sudo systemctl status ndb-postgresql.service
-
-
-# ============================================================
-# Verify running PG17
-# ============================================================
-
-/usr/lib/postgresql/17/bin/psql -U postgres -c "SELECT version();"
-
-
-# ============================================================
-# Post-upgrade maintenance
-# ============================================================
-
-sudo -iu postgres
-
-/usr/lib/postgresql/17/bin/vacuumdb \
-  --all \
-  --analyze-in-stages
-
-
-# ============================================================
-# Restore original pg_hba.conf auth if modified
-# ============================================================
-
-vi /pg_data/PG16/pg_hba.conf
-
-# Restore original auth, for example:
-#
-# local   all   all   scram-sha-256
-
-
-# ============================================================
-# Restart service after pg_hba restore
-# ============================================================
-
-exit
-
-sudo systemctl restart ndb-postgresql.service
-
-sudo systemctl status ndb-postgresql.service
-
-
-# ============================================================
-# Final verification
-# ============================================================
-
-ps -ef | grep postgres
-
-/usr/lib/postgresql/17/bin/psql -U postgres -c "SELECT version();"
-
-
-
-
-
-
 #!/usr/bin/env bash
 
 set -euxo pipefail
 
 # ============================================================
-# PostgreSQL 16 -> 17 Upgrade Script
-# Ubuntu 22.04 / Debian
+# PostgreSQL ${OLD_VER} -> ${NEW_VER} Upgrade Script
+# Ubuntu / Debian (PGDG apt repository)
 #
-# Custom cluster layout:
-#   /pg_data/PG16
-#   /pg_data/PG17
+# Custom cluster layout (BASE_PGDATA is auto-discovered, e.g. /pg_data):
+#   $BASE_PGDATA/PG${OLD_VER}
+#   $BASE_PGDATA/PG${NEW_VER}
 #
 # Nutanix service:
 #   ndb-postgresql.service
@@ -267,35 +22,54 @@ set -euxo pipefail
 OLD_VER=16
 NEW_VER=17
 
-PGDATA=/pg_data
+SERVICE_NAME=ndb-postgresql.service
 
-OLD_PGDATA=$PGDATA/PG16
-NEW_PGDATA=$PGDATA/PG17
+# Determine BASE_PGDATA from the running PostgreSQL server.
+# Falls back to parsing the systemd unit file if psql is unavailable
+# (e.g. the service is already stopped from a previous attempt).
+
+BASE_PGDATA=$(sudo -u postgres psql -tA -c "SHOW data_directory;" 2>/dev/null \
+  | tr -d '[:space:]')
+
+if [ -z "$BASE_PGDATA" ]; then
+  BASE_PGDATA=$(grep -oP '(?<=-D\s)\S+' \
+    "/etc/systemd/system/$SERVICE_NAME" 2>/dev/null \
+    | head -n1)
+fi
+
+if [ -z "$BASE_PGDATA" ]; then
+  echo "ERROR: Could not determine PostgreSQL data directory"
+  exit 1
+fi
+
+echo "Discovered BASE_PGDATA: $BASE_PGDATA"
+
+OLD_PGDATA=$BASE_PGDATA/PG$OLD_VER
+NEW_PGDATA=$BASE_PGDATA/PG$NEW_VER
 
 OLD_BIN=/usr/lib/postgresql/$OLD_VER/bin
 NEW_BIN=/usr/lib/postgresql/$NEW_VER/bin
 
-SERVICE_NAME=ndb-postgresql.service
-
 
 # ============================================================
 # Cleanup broken PostgreSQL archive repositories
+# (PGDG sometimes leaves stale archive lists that break apt update)
 # ============================================================
 
 sudo rm -f /etc/apt/sources.list.d/pgdg-archive.list || true
 
-sudo sed -i '/apt-archive.postgresql.org.*jammy-pgdg/d' \
+sudo sed -i '/apt-archive.postgresql.org.*pgdg/d' \
   /etc/apt/sources.list \
-  /etc/apt/sources.list.d/* || true
+  /etc/apt/sources.list.d/* 2>/dev/null || true
 
 
 # ============================================================
-# Install PostgreSQL repository
+# Install prerequisites
 # ============================================================
 
-sudo apt update
+sudo apt-get update
 
-sudo apt install -y \
+sudo apt-get install -y \
   wget \
   gnupg2 \
   lsb-release \
@@ -309,33 +83,32 @@ sudo apt install -y \
 if [ ! -f /usr/share/keyrings/postgresql.gpg ]; then
 
   wget --quiet -O - \
-    https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
-    sudo gpg --dearmor \
-      -o /usr/share/keyrings/postgresql.gpg
+    https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    | sudo gpg --dearmor \
+        -o /usr/share/keyrings/postgresql.gpg
 
 fi
 
-
 echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] \
 http://apt.postgresql.org/pub/repos/apt \
-$(lsb_release -cs)-pgdg main" | \
-sudo tee /etc/apt/sources.list.d/pgdg.list
+$(lsb_release -cs)-pgdg main" \
+  | sudo tee /etc/apt/sources.list.d/pgdg.list
 
 
 # ============================================================
 # Install PostgreSQL packages
 # ============================================================
 
-sudo apt update
+sudo apt-get update
 
-sudo apt install --reinstall -y \
-  postgresql-16 \
-  postgresql-17 \
-  postgresql-client-17
+sudo apt-get install -y \
+  postgresql-$OLD_VER \
+  postgresql-$NEW_VER \
+  postgresql-client-$NEW_VER
 
 
 # ============================================================
-# Verify binary versions
+# Verify binaries
 # ============================================================
 
 $OLD_BIN/postgres --version
@@ -346,12 +119,11 @@ $NEW_BIN/pg_dump --version
 
 # ============================================================
 # Remove Ubuntu auto-created cluster
+# (apt creates /var/lib/postgresql/$NEW_VER/main; we use a custom layout)
 # ============================================================
 
-if pg_lsclusters | grep "^17"; then
-
-  sudo pg_dropcluster --stop 17 main || true
-
+if pg_lsclusters | grep -q "^$NEW_VER "; then
+  sudo pg_dropcluster --stop $NEW_VER main || true
 fi
 
 
@@ -368,7 +140,7 @@ sleep 5
 # Ensure postgres fully stopped
 # ============================================================
 
-if ps -ef | grep '[p]ostgres'; then
+if ps -ef | grep '[p]ostgres' | grep -v exporter | grep -v grep; then
   echo "ERROR: postgres processes still running"
   exit 1
 fi
@@ -385,22 +157,38 @@ sudo -iu postgres
 # Variables under postgres user
 # ============================================================
 
-export PGDATA=/pg_data
+export OLD_VER=16
+export NEW_VER=17
+export SERVICE_NAME=ndb-postgresql.service
 
-export OLD_BIN=/usr/lib/postgresql/16/bin
-export NEW_BIN=/usr/lib/postgresql/17/bin
+# PostgreSQL is already stopped at this point, so SHOW data_directory
+# is not available. Parse the data directory from the systemd unit file.
+
+export PGDATA=$(grep -oP '(?<=-D\s)\S+' \
+  /etc/systemd/system/$SERVICE_NAME 2>/dev/null \
+  | head -n1)
+
+if [ -z "$PGDATA" ]; then
+  echo "ERROR: Could not determine PGDATA from systemd unit"
+  exit 1
+fi
+
+echo "Using PGDATA: $PGDATA"
+
+export OLD_BIN=/usr/lib/postgresql/$OLD_VER/bin
+export NEW_BIN=/usr/lib/postgresql/$NEW_VER/bin
 
 
 # ============================================================
 # Create versioned directories
 # ============================================================
 
-mkdir -p $PGDATA/PG16
-mkdir -p $PGDATA/PG17
+mkdir -p $PGDATA/PG$OLD_VER
+mkdir -p $PGDATA/PG$NEW_VER
 
 
 # ============================================================
-# Move existing cluster into PG16/
+# Move existing cluster into PG${OLD_VER}/
 #
 # Only if root PGDATA still contains PG_VERSION
 # ============================================================
@@ -408,9 +196,9 @@ mkdir -p $PGDATA/PG17
 if [ -f "$PGDATA/PG_VERSION" ]; then
 
   find "$PGDATA" -mindepth 1 -maxdepth 1 \
-    ! -name PG16 \
-    ! -name PG17 \
-    -exec mv {} "$PGDATA/PG16/" \;
+    ! -name PG$OLD_VER \
+    ! -name PG$NEW_VER \
+    -exec mv {} "$PGDATA/PG$OLD_VER/" \;
 
 fi
 
@@ -420,45 +208,45 @@ fi
 # ============================================================
 
 chown -R postgres:postgres \
-  $PGDATA/PG16 \
-  $PGDATA/PG17
+  $PGDATA/PG$OLD_VER \
+  $PGDATA/PG$NEW_VER
 
-chmod 700 $PGDATA/PG16
-chmod 700 $PGDATA/PG17
+chmod 700 $PGDATA/PG$OLD_VER
+chmod 700 $PGDATA/PG$NEW_VER
 
 
 # ============================================================
-# Cleanup failed PG17 attempts
+# Cleanup failed PG${NEW_VER} attempts
 # ============================================================
 
-rm -rf $PGDATA/PG17/*
+rm -rf $PGDATA/PG$NEW_VER/*
 
 
 # ============================================================
 # Validate source cluster exists
 # ============================================================
 
-if [ ! -f "$PGDATA/PG16/PG_VERSION" ]; then
+if [ ! -f "$PGDATA/PG$OLD_VER/PG_VERSION" ]; then
 
-  echo "ERROR: Source PG16 cluster not found"
+  echo "ERROR: Source PG$OLD_VER cluster not found"
   exit 1
 
 fi
 
 
 # ============================================================
-# Initialize PG17 cluster
+# Initialize PG${NEW_VER} cluster
 # ============================================================
 
 $NEW_BIN/initdb \
-  -D $PGDATA/PG17
+  -D $PGDATA/PG$NEW_VER
 
 
 # ============================================================
 # Verify initialization
 # ============================================================
 
-cat $PGDATA/PG17/PG_VERSION
+cat $PGDATA/PG$NEW_VER/PG_VERSION
 
 
 # ============================================================
@@ -466,21 +254,24 @@ cat $PGDATA/PG17/PG_VERSION
 # ============================================================
 
 cp \
-  $PGDATA/PG16/pg_hba.conf \
-  $PGDATA/PG16/pg_hba.conf.bak
+  $PGDATA/PG$OLD_VER/pg_hba.conf \
+  $PGDATA/PG$OLD_VER/pg_hba.conf.bak
 
 
 # ============================================================
 # Temporary pg_hba.conf for pg_upgrade
 # ============================================================
 
-cat > $PGDATA/PG16/pg_hba.conf
+# pg_hba.conf is evaluated top-to-bottom and the first matching rule
+# wins. Prepend a permissive `local all all peer` rule so pg_upgrade can
+# connect over the Unix socket as the postgres OS user without a password.
+# Any existing `local all all <method>` line below becomes inert.
+# Original file is preserved at pg_hba.conf.bak (from the previous step)
+# and restored after pg_upgrade completes.
 
-# Paste below content manually, save and exit:
-#
-# local   all   all                     peer
-# host    all   all   127.0.0.1/32      trust
-# host    all   all   ::1/128           trust
+sed -i '1ilocal all all peer' $PGDATA/PG$OLD_VER/pg_hba.conf
+
+head -n5 $PGDATA/PG$OLD_VER/pg_hba.conf
 
 
 # ============================================================
@@ -490,8 +281,8 @@ cat > $PGDATA/PG16/pg_hba.conf
 $NEW_BIN/pg_upgrade \
   -b $OLD_BIN \
   -B $NEW_BIN \
-  -d $PGDATA/PG16 \
-  -D $PGDATA/PG17 \
+  -d $PGDATA/PG$OLD_VER \
+  -D $PGDATA/PG$NEW_VER \
   -U postgres \
   --link
 
@@ -501,8 +292,8 @@ $NEW_BIN/pg_upgrade \
 # ============================================================
 
 $NEW_BIN/pg_ctl \
-  -D $PGDATA/PG17 \
-  -l $PGDATA/PG17/server.log \
+  -D $PGDATA/PG$NEW_VER \
+  -l $PGDATA/PG$NEW_VER/server.log \
   start
 
 
@@ -526,7 +317,7 @@ $NEW_BIN/psql -l
 # ============================================================
 
 $NEW_BIN/pg_ctl \
-  -D $PGDATA/PG17 \
+  -D $PGDATA/PG$NEW_VER \
   stop
 
 
@@ -535,8 +326,8 @@ $NEW_BIN/pg_ctl \
 # ============================================================
 
 mv \
-  $PGDATA/PG16/pg_hba.conf.bak \
-  $PGDATA/PG16/pg_hba.conf
+  $PGDATA/PG$OLD_VER/pg_hba.conf.bak \
+  $PGDATA/PG$OLD_VER/pg_hba.conf
 
 
 # ============================================================
@@ -559,8 +350,6 @@ sudo systemctl cat $SERVICE_NAME || true
 
 SERVICE_FILE=/etc/systemd/system/$SERVICE_NAME
 
-sudo vi /etc/systemd/system/ndb-postgresql.service
-
 sudo cp \
   $SERVICE_FILE \
   ${SERVICE_FILE}.bak
@@ -571,16 +360,35 @@ sudo cp \
 # ============================================================
 
 sudo sed -i \
-  "s|/usr/lib/postgresql/16/bin/postgres|/usr/lib/postgresql/17/bin/postgres|g" \
+  "s|/usr/lib/postgresql/$OLD_VER/bin/|/usr/lib/postgresql/$NEW_VER/bin/|g" \
   $SERVICE_FILE
-# ExecStart=/usr/lib/postgresql/17/bin/postgres -D ${PGDATA}
-# Environment=PGDATA=/pg_data/PG17
+
+
+# ============================================================
+# Update postgres client in bash_profile
+# ============================================================
+
+sudo -iu postgres
+
+OLD_VER=16
+NEW_VER=17
+
+if [ -f ~/.bash_profile ]; then
+  sed -i \
+    "s|/usr/lib/postgresql/$OLD_VER/bin|/usr/lib/postgresql/$NEW_VER/bin|g" \
+    ~/.bash_profile
+  source ~/.bash_profile
+fi
+
+exit
+
+
 # ============================================================
 # Update PGDATA path
 # ============================================================
 
 sudo sed -i \
-  "s|/pg_data/PG16|/pg_data/PG17|g" \
+  "s|$BASE_PGDATA|$BASE_PGDATA/PG$NEW_VER|g" \
   $SERVICE_FILE
 
 
@@ -613,7 +421,7 @@ sudo systemctl start $SERVICE_NAME
 # Verify service
 # ============================================================
 
-sudo systemctl status $SERVICE_NAME --no-pager
+sudo systemctl status $SERVICE_NAME --no-pager -l
 
 
 # ============================================================
@@ -622,7 +430,9 @@ sudo systemctl status $SERVICE_NAME --no-pager
 
 sudo -iu postgres
 
-/usr/lib/postgresql/17/bin/psql \
+export NEW_VER=17
+
+/usr/lib/postgresql/$NEW_VER/bin/psql \
   -U postgres \
   -c "SELECT version();"
 
@@ -631,7 +441,7 @@ sudo -iu postgres
 # Post-upgrade maintenance
 # ============================================================
 
-/usr/lib/postgresql/17/bin/vacuumdb \
+/usr/lib/postgresql/$NEW_VER/bin/vacuumdb \
   --all \
   --analyze-in-stages
 
@@ -645,7 +455,5 @@ ps -ef | grep '[p]ostgres'
 
 echo
 echo "============================================================"
-echo "PostgreSQL upgrade to version 17 completed successfully"
+echo "PostgreSQL upgrade to version $NEW_VER completed successfully"
 echo "============================================================"
-
-
