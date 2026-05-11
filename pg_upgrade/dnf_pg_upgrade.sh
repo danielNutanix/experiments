@@ -19,7 +19,7 @@ set -euxo pipefail
 # Variables
 # ============================================================
 
-OLD_VER=16
+OLD_VER=15
 NEW_VER=17
 
 SERVICE_NAME=era_postgres.service
@@ -117,7 +117,7 @@ sudo -iu postgres
 # Variables under postgres user
 # ============================================================
 
-export OLD_VER=16
+export OLD_VER=15
 export NEW_VER=17
 export SERVICE_NAME=era_postgres.service
 
@@ -320,7 +320,7 @@ sudo cp \
 # ============================================================
 
 sudo sed -i \
-  "s|/usr/pgsql-$OLD_VER/bin/postgres|/usr/pgsql-$NEW_VER/bin/postgres|g" \
+  "s|/usr/pgsql-$OLD_VER/bin/|/usr/pgsql-$NEW_VER/bin/|g" \
   $SERVICE_FILE
 
 
@@ -329,7 +329,7 @@ sudo sed -i \
 # ============================================================
 
 sudo sed -i \
-  "s|$BASE_PGDATA/PG$OLD_VER|$BASE_PGDATA/PG$NEW_VER|g" \
+  "s|$BASE_PGDATA|$BASE_PGDATA/PG$NEW_VER|g" \
   $SERVICE_FILE
 
 
