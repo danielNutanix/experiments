@@ -325,6 +325,20 @@ sudo sed -i \
 
 
 # ============================================================
+# Update postgres client in bash_profile
+# ============================================================
+sudo -iu postgres
+
+OLD_VER=15
+NEW_VER=17
+sed -i \
+  "s|/usr/pgsql-$OLD_VER/bin|/usr/pgsql-$NEW_VER/bin|g" \
+  ~/.bash_profile
+source ~/.bash_profile
+
+exit
+
+# ============================================================
 # Update PGDATA path
 # ============================================================
 
