@@ -74,18 +74,19 @@ def print_console_summary(results: List[TestResult]) -> None:
     summary = _summary(results)
     print()
     print("=" * 72)
-    print("PostgreSQL upgrade compatibility matrix — summary")
+    print("PostgreSQL upgrade compatibility matrix - summary")
     print("=" * 72)
-    print(f"  total:  {summary['total']}")
-    print(f"  passed: {summary['passed']}")
-    print(f"  failed: {summary['failed']}")
-    print(f"  error:  {summary['error']}")
+    print(f"  total:   {summary['total']}")
+    print(f"  passed:  {summary['passed']}")
+    print(f"  failed:  {summary['failed']}")
+    print(f"  error:   {summary['error']}")
+    print(f"  skipped: {summary['skipped']}")
     print()
-    if summary["failed"] or summary["error"]:
+    interesting = [r for r in results if r.status != "PASSED"]
+    if interesting:
         print("Non-passing pairs:")
-        for r in results:
-            if r.status not in ("PASSED",):
-                print(f"  - {r.pair.label:>14}: {r.status}: {r.failure_reason}")
+        for r in interesting:
+            print(f"  - {r.pair.label:>14}: {r.status}: {r.failure_reason}")
         print()
 
 
@@ -94,7 +95,8 @@ def print_console_summary(results: List[TestResult]) -> None:
 # ============================================================
 
 def _summary(results: List[TestResult]) -> Dict[str, int]:
-    counts = {"total": len(results), "passed": 0, "failed": 0, "error": 0}
+    counts = {"total": len(results), "passed": 0, "failed": 0,
+              "error": 0, "skipped": 0}
     for r in results:
         if r.status == "PASSED":
             counts["passed"] += 1
@@ -102,6 +104,8 @@ def _summary(results: List[TestResult]) -> Dict[str, int]:
             counts["failed"] += 1
         elif r.status == "ERROR":
             counts["error"] += 1
+        elif r.status == "SKIPPED":
+            counts["skipped"] += 1
     return counts
 
 

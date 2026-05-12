@@ -2,9 +2,10 @@
 """Command-line entry point for the PG upgrade compatibility framework.
 
 Subcommands:
-  bootstrap   Seed datasets onto every (or selected) golden VM and take
-              the BASELINE snapshot.
-  run         Execute the upgrade matrix (or a subset).
+  bootstrap   Install every supported PostgreSQL version on the golden
+              VM, seed each, and take the BASELINE snapshot.
+  run         Execute the upgrade matrix sequentially against the golden
+              VM (revert -> upgrade -> validate per pair).
   list-pairs  Print every (source, target) pair that would be exercised
               by the default matrix.
 """
@@ -23,16 +24,15 @@ import urllib3
 from . import __version__
 from .config import (
     BASELINE_SNAPSHOT_NAME,
+    DEFAULT_GOLDEN_VM_NAME,
     FrameworkConfig,
-    GOLDEN_VM_NAME_TEMPLATE,
     PrismCreds,
     SUPPORTED_VERSIONS,
     SshCreds,
     TestPair,
     all_upgrade_pairs,
 )
-from .golden import bootstrap_all, bootstrap_one
-from .prism import PrismClient
+from .golden import bootstrap
 from .reporter import (
     print_console_summary,
     write_json_report,
@@ -44,11 +44,11 @@ from .runner import run_matrix
 LOGGER = logging.getLogger("pg_upgrade_test")
 
 DEFAULT_RESULTS_DIR = "./results"
-DEFAULT_MAX_PARALLEL = 4
 DEFAULT_BOOT_TIMEOUT = 300
 DEFAULT_UPGRADE_TIMEOUT = 1800
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_INSTALL_SCRIPT = os.path.join(REPO_ROOT, "scripts", "install_all_pg.sh")
 DEFAULT_UPGRADE_SCRIPT = os.path.join(REPO_ROOT, "scripts", "pg_upgrade.sh")
 DEFAULT_SEED_SQL = os.path.join(REPO_ROOT, "scripts", "seed.sql")
 DEFAULT_VALIDATE_SQL = os.path.join(REPO_ROOT, "scripts", "validate.sql")
@@ -85,7 +85,7 @@ def _add_common_args(p: argparse.ArgumentParser) -> None:
     g_prism.add_argument("--verify-ssl", action="store_true",
                          help="Verify Prism's TLS certificate")
 
-    g_ssh = p.add_argument_group("SSH (golden + clones)")
+    g_ssh = p.add_argument_group("SSH (golden VM)")
     g_ssh.add_argument("--ssh-user", default="postgres",
                        help="SSH username (default: postgres)")
     g_ssh.add_argument("--ssh-password",
@@ -102,15 +102,18 @@ def _add_common_args(p: argparse.ArgumentParser) -> None:
         help="Comma-separated PostgreSQL versions to consider "
              f"(default: {','.join(str(v) for v in SUPPORTED_VERSIONS)})")
     g_versions.add_argument(
-        "--golden-vm-template", default=GOLDEN_VM_NAME_TEMPLATE,
-        help="Naming template for golden VMs "
-             f"(default: '{GOLDEN_VM_NAME_TEMPLATE}')")
+        "--golden-vm-name", default=DEFAULT_GOLDEN_VM_NAME,
+        help=f"Name of the single multi-version golden VM "
+             f"(default: '{DEFAULT_GOLDEN_VM_NAME}')")
     g_versions.add_argument(
         "--baseline-snapshot", default=BASELINE_SNAPSHOT_NAME,
-        help=f"Snapshot name on each golden VM (default: "
+        help=f"Snapshot name on the golden VM (default: "
              f"'{BASELINE_SNAPSHOT_NAME}')")
 
     g_paths = p.add_argument_group("Paths")
+    g_paths.add_argument("--install-script", default=DEFAULT_INSTALL_SCRIPT,
+                         help=f"Local install_all_pg.sh path "
+                              f"(default: {DEFAULT_INSTALL_SCRIPT})")
     g_paths.add_argument("--upgrade-script", default=DEFAULT_UPGRADE_SCRIPT,
                          help=f"Local pg_upgrade.sh path "
                               f"(default: {DEFAULT_UPGRADE_SCRIPT})")
@@ -137,45 +140,43 @@ def _add_run_args(p: argparse.ArgumentParser) -> None:
                    help="Restrict source major version(s); repeatable")
     p.add_argument("--target", type=int, action="append",
                    help="Restrict target major version(s); repeatable")
-    p.add_argument("--max-parallel", type=int, default=DEFAULT_MAX_PARALLEL,
-                   help=f"Concurrent test workers (default: "
-                        f"{DEFAULT_MAX_PARALLEL})")
     p.add_argument("--boot-timeout", type=int, default=DEFAULT_BOOT_TIMEOUT,
-                   help=f"Seconds to wait for boot+SSH+IP (default: "
-                        f"{DEFAULT_BOOT_TIMEOUT})")
+                   help=f"Seconds to wait for boot+SSH+IP after revert "
+                        f"(default: {DEFAULT_BOOT_TIMEOUT})")
     p.add_argument("--upgrade-timeout", type=int,
                    default=DEFAULT_UPGRADE_TIMEOUT,
                    help=f"Seconds to wait for pg_upgrade.sh (default: "
                         f"{DEFAULT_UPGRADE_TIMEOUT})")
 
 
-def _add_bootstrap_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument(
-        "--only", type=int, action="append",
-        help="Restrict bootstrap to a single PG major version; repeatable")
-
-
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="pg-upgrade-test",
-        description="Automated PostgreSQL major-version upgrade testing on "
-                    "Nutanix Prism")
+        description="Sequential PostgreSQL major-version upgrade testing on "
+                    "Nutanix Prism (single golden VM, snapshot-revert).")
     parser.add_argument("--version", action="version",
                         version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_boot = sub.add_parser(
         "bootstrap",
-        help="Seed dataset and snapshot every golden VM",
-        description="Connect to each PG{N}_GOLDEN VM, run seed.sql, take "
-                    "the BASELINE snapshot.")
+        help="Install all PG versions on the golden VM and snapshot it",
+        description="Install every supported PostgreSQL major version on "
+                    "the golden VM (each on port 5400+N), seed each "
+                    "cluster, then take the BASELINE snapshot.")
     _add_common_args(p_boot)
-    _add_bootstrap_args(p_boot)
+    p_boot.add_argument(
+        "--allow-missing-versions", action="store_true",
+        help="Continue if individual PG versions are unavailable from "
+             "PGDG for the chosen OS (e.g. PG11 on RHEL 9). The manifest "
+             "of installed versions is always written; `run` reads it "
+             "and silently skips pairs that reference a missing version.")
 
     p_run = sub.add_parser(
-        "run", help="Run the upgrade compatibility matrix",
-        description="Clone each source golden VM, upgrade in place, run the "
-                    "validation suite, collect logs, destroy the clone.")
+        "run", help="Run the upgrade compatibility matrix sequentially",
+        description="For each (source, target) pair: revert the golden VM "
+                    "to BASELINE, run pg_upgrade in place, run validation, "
+                    "collect logs.")
     _add_common_args(p_run)
     _add_run_args(p_run)
 
@@ -259,17 +260,19 @@ def _build_config(args: argparse.Namespace,
                          verify_ssl=bool(args.verify_ssl)),
         ssh=SshCreds(user=args.ssh_user, password=ssh_password,
                      key_path=ssh_key, port=args.ssh_port),
+        install_script=os.path.abspath(args.install_script),
         upgrade_script=os.path.abspath(args.upgrade_script),
         seed_sql=os.path.abspath(args.seed_sql),
         validate_sql=os.path.abspath(args.validate_sql),
         results_dir=os.path.abspath(args.results_dir),
-        max_parallel=getattr(args, "max_parallel", DEFAULT_MAX_PARALLEL),
         boot_timeout_secs=getattr(args, "boot_timeout", DEFAULT_BOOT_TIMEOUT),
         upgrade_timeout_secs=getattr(args, "upgrade_timeout",
                                      DEFAULT_UPGRADE_TIMEOUT),
         versions=versions,
-        golden_vm_name_template=args.golden_vm_template,
+        golden_vm_name=args.golden_vm_name,
         baseline_snapshot_name=args.baseline_snapshot,
+        allow_missing_versions=bool(getattr(args, "allow_missing_versions",
+                                            False)),
         pairs=pairs or [],
     )
 
@@ -280,25 +283,26 @@ def _build_config(args: argparse.Namespace,
 
 def _cmd_bootstrap(args: argparse.Namespace) -> int:
     cfg = _build_config(args)
-    for path in (cfg.upgrade_script, cfg.seed_sql, cfg.validate_sql):
+    for path in (cfg.install_script, cfg.upgrade_script,
+                 cfg.seed_sql, cfg.validate_sql):
         if not os.path.isfile(path):
             raise SystemExit(f"Required local file missing: {path}")
 
-    if args.only:
-        prism = PrismClient(cfg.prism.host, cfg.prism.user,
-                            cfg.prism.password, cfg.prism.verify_ssl)
-        statuses = [bootstrap_one(cfg, v, prism) for v in sorted(set(args.only))]
-    else:
-        statuses = bootstrap_all(cfg)
-
-    failed = [s for s in statuses if not s.seeded]
+    status = bootstrap(cfg)
     print()
-    print("Golden VM bootstrap summary:")
-    for s in statuses:
-        flag = "OK" if s.seeded else "FAIL"
-        print(f"  PG{s.version:<2} -> {s.vm_name:<20} {flag}  "
-              f"snapshot={s.snapshot_uuid or '-'}")
-    return 0 if not failed else 2
+    installed = ", ".join(str(v) for v in status.installed_versions) or "<none>"
+    skipped = ", ".join(str(v) for v in status.skipped_versions) or "<none>"
+    if status.succeeded:
+        print(f"Bootstrap of '{status.vm_name}' SUCCEEDED.")
+        print(f"  vm_uuid            : {status.vm_uuid}")
+        print(f"  snapshot_uuid      : {status.snapshot_uuid}")
+        print(f"  installed_versions : {installed}")
+        print(f"  skipped_versions   : {skipped}")
+        return 0
+    print(f"Bootstrap of '{status.vm_name}' FAILED: {status.failure_reason}")
+    if status.installed_versions:
+        print(f"  installed_versions : {installed}")
+    return 2
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
@@ -308,7 +312,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
         raise SystemExit("No upgrade pairs selected after applying filters")
     cfg = _build_config(args, pairs=pairs)
 
-    for path in (cfg.upgrade_script, cfg.seed_sql, cfg.validate_sql):
+    for path in (cfg.upgrade_script, cfg.validate_sql):
         if not os.path.isfile(path):
             raise SystemExit(f"Required local file missing: {path}")
     os.makedirs(cfg.results_dir, exist_ok=True)

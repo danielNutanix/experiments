@@ -1,8 +1,10 @@
 # Copyright (c) 2026 Nutanix Inc. All rights reserved. Author: era-dev@nutanix.com
 """Shared configuration objects, defaults and the PostgreSQL version matrix.
 
-The version matrix is centralised here so adding a new PostgreSQL major
-version (e.g. PG19) becomes a one-line change.
+The framework runs **sequentially** against a **single golden VM** that
+has every supported PostgreSQL major version pre-installed (each on its
+own port) and seeded. Between pairs the VM is reverted to a fixed
+baseline snapshot.
 """
 
 from __future__ import annotations
@@ -17,13 +19,21 @@ from typing import List, Optional, Tuple
 
 SUPPORTED_VERSIONS: Tuple[int, ...] = (11, 12, 13, 14, 15, 16, 17, 18)
 
-# Convention for a per-version golden VM name on Prism. The integer is
-# substituted with each supported major version.
-GOLDEN_VM_NAME_TEMPLATE = "PG{version}_GOLDEN"
+# Single VM that contains every supported PostgreSQL version.
+DEFAULT_GOLDEN_VM_NAME = "PG_UPGRADE_GOLDEN"
 
-# Snapshot taken on every golden VM after seeding. All test clones come
-# from this snapshot so each run starts from byte-identical state.
-BASELINE_SNAPSHOT_NAME = "PG_UPGRADE_TEST_BASELINE"
+# Snapshot taken on the golden VM after all clusters are seeded; every
+# pair restores this snapshot before running.
+BASELINE_SNAPSHOT_NAME = "PG_UPGRADE_BASELINE"
+
+# Each PostgreSQL cluster runs on a deterministic, predictable port so
+# the upgrade and validation tooling never has to guess.
+PORT_BASE = 5400
+
+
+def port_for(version: int) -> int:
+    """Return the well-known port assigned to a given PG major version."""
+    return PORT_BASE + version
 
 
 def all_upgrade_pairs(versions: Tuple[int, ...] = SUPPORTED_VERSIONS,
@@ -48,11 +58,9 @@ class PrismCreds:
 
 @dataclass
 class SshCreds:
-    """SSH credentials applied to every cloned test VM.
+    """SSH credentials applied to the golden VM.
 
-    The same credentials are used for all clones because they're imaged
-    from the same golden VM. Either ``password`` or ``key_path`` must be
-    set.
+    Either ``password`` or ``key_path`` must be set.
     """
 
     user: str = "postgres"
@@ -86,20 +94,23 @@ class FrameworkConfig:
     prism: PrismCreds
     ssh: SshCreds
 
+    install_script: str
     upgrade_script: str
     seed_sql: str
     validate_sql: str
 
     results_dir: str
-    max_parallel: int = 4
     boot_timeout_secs: int = 300
     upgrade_timeout_secs: int = 1800
+    revert_timeout_secs: int = 600
 
     versions: Tuple[int, ...] = SUPPORTED_VERSIONS
-    golden_vm_name_template: str = GOLDEN_VM_NAME_TEMPLATE
+    golden_vm_name: str = DEFAULT_GOLDEN_VM_NAME
     baseline_snapshot_name: str = BASELINE_SNAPSHOT_NAME
+
+    allow_missing_versions: bool = False
 
     pairs: List[TestPair] = field(default_factory=list)
 
-    def golden_vm_name(self, version: int) -> str:
-        return self.golden_vm_name_template.format(version=version)
+    def port_for(self, version: int) -> int:
+        return port_for(version)

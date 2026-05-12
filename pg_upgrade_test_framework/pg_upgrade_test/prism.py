@@ -228,6 +228,29 @@ class PrismClient:
         task = _extract_task_uuid(_json(resp))
         self.wait_for_task(task)
 
+    # -------- Snapshot restore --------
+
+    def restore_snapshot(self, vm_uuid: str, snapshot_uuid: str,
+                         *, restore_network_configuration: bool = False,
+                         ) -> None:
+        """Restore a VM's disks from one of its own snapshots.
+
+        Caller is responsible for powering the VM off beforehand and
+        powering it back on afterwards — Prism's restore endpoint expects
+        the VM to be in the OFF state.
+        """
+        body = {
+            "snapshot_uuid": snapshot_uuid,
+            "restore_network_configuration": restore_network_configuration,
+        }
+        resp = _request(self._session, "POST",
+                        self._url(
+                            f"/PrismGateway/services/rest/v2.0/vms/"
+                            f"{vm_uuid}/restore"),
+                        data=json.dumps(body))
+        task = _extract_task_uuid(_json(resp))
+        self.wait_for_task(task)
+
     # -------- Task polling --------
 
     def wait_for_task(self, task_uuid: str, *, timeout: int = 900,
