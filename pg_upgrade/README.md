@@ -106,22 +106,61 @@ Everything else has a sensible default.
 
 ## Run
 
-`pyproject.toml` exposes a `pg-upgrade` console script:
+`pyproject.toml` exposes a `pg-upgrade` console script.
+
+### Minimal invocation
+
+Smallest possible command line — everything else falls back to defaults or
+interactive prompts:
 
 ```bash
-uv run pg-upgrade                        \
-    --ndb-host        <NDB_HOST>         \
-    --ndb-user        admin              \
-    --prism-user      admin              \
-    --vm-name         my-pg-dbvm         \
-    --ssh-user        era                \
-    --ssh-key         ~/.ssh/era_dbvm    \
-    --old-version     15                 \
-    --new-version     17                 \
+uv run pg-upgrade                          \
+    --ndb-host        <NDB_HOST>           \
+    --ndb-user        admin                \
+    --prism-user      admin                \
+    --vm-name         my-pg-dbvm           \
+    --ssh-key         ~/.ssh/era_dbvm      \
     --insecure
 ```
 
 Equivalent: `uv run python pg_upgrade_orchestrator.py …`.
+
+### Exhaustive invocation
+
+Every flag the orchestrator accepts, with example values. Use this as a
+template and trim what you don't need:
+
+```bash
+uv run pg-upgrade                                                 \
+    --ndb-host           ndb.example.com                          \
+    --ndb-user           admin                                    \
+    --ndb-password       'ndb-password-here'                      \
+    --prism-user         admin                                    \
+    --prism-password     'prism-password-here'                    \
+    --ssh-user           era                                      \
+    --ssh-key            ~/.ssh/era_dbvm                          \
+    --ssh-port           22                                       \
+    --vm-name            my-pg-dbvm                               \
+    --old-version        15                                       \
+    --new-version        17                                       \
+    --disk-size-gb       20                                       \
+    --snapshot-name      pg_upgrade_pre_15_to_17                  \
+    --storage-container  default-container                        \
+    --mount-point        /usr/pgsql-17                            \
+    --upgrade-script     ./pg_upgrade.sh                          \
+    --insecure                                                    \
+    --verbose
+```
+
+Notes on the exhaustive form:
+
+- `--ssh-key` and `--ssh-password` are mutually exclusive — pick one.
+  Replace `--ssh-key ~/.ssh/era_dbvm` with `--ssh-password 'ssh-password-here'`
+  if you don't use key-based auth.
+- For password flags, prefer env vars (`NDB_PASSWORD`, `PRISM_PASSWORD`,
+  `DBVM_SSH_PASSWORD`) over the CLI to keep secrets out of shell history.
+- Drop `--insecure` if your NDB / Prism endpoints have valid TLS certs.
+- Drop `--verbose` for normal INFO-level output.
 
 ### Env-var-only invocation
 
