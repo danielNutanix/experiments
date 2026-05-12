@@ -1,0 +1,431 @@
+{
+  "results": [
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg11_to_pg12",
+      "duration_secs": 6.47,
+      "failure_reason": "PrismError: Prism task d23f85e2-133b-4156-bc70-d84efb184b9e ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:31+00:00",
+      "pair": {
+        "label": "pg11_to_pg12",
+        "source": 11,
+        "target": 12
+      },
+      "started_at": "2026-05-12T19:53:24+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg11_to_pg13",
+      "duration_secs": 1.15,
+      "failure_reason": "PrismError: Prism task fb4614b6-0bcd-4fca-b2fa-6dab99338643 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:32+00:00",
+      "pair": {
+        "label": "pg11_to_pg13",
+        "source": 11,
+        "target": 13
+      },
+      "started_at": "2026-05-12T19:53:31+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg11_to_pg14",
+      "duration_secs": 1.18,
+      "failure_reason": "PrismError: Prism task dfc530df-989f-4b07-8716-81a710741779 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:33+00:00",
+      "pair": {
+        "label": "pg11_to_pg14",
+        "source": 11,
+        "target": 14
+      },
+      "started_at": "2026-05-12T19:53:32+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg11_to_pg15",
+      "duration_secs": 1.12,
+      "failure_reason": "PrismError: Prism task 4ac41bea-8579-4c9c-8af7-d555eedf1043 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:34+00:00",
+      "pair": {
+        "label": "pg11_to_pg15",
+        "source": 11,
+        "target": 15
+      },
+      "started_at": "2026-05-12T19:53:33+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg11_to_pg16",
+      "duration_secs": 1.2,
+      "failure_reason": "PrismError: Prism task a02fe8ea-ed15-4bf4-b928-c80e450f1cb4 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:35+00:00",
+      "pair": {
+        "label": "pg11_to_pg16",
+        "source": 11,
+        "target": 16
+      },
+      "started_at": "2026-05-12T19:53:34+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg11_to_pg17",
+      "duration_secs": 1.18,
+      "failure_reason": "PrismError: Prism task 0e1bdb76-0027-45a3-b568-717f324a850a ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:37+00:00",
+      "pair": {
+        "label": "pg11_to_pg17",
+        "source": 11,
+        "target": 17
+      },
+      "started_at": "2026-05-12T19:53:35+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg11_to_pg18",
+      "duration_secs": 1.13,
+      "failure_reason": "PrismError: Prism task f00d37b6-8f27-4d36-af1d-19ce288c94e6 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:38+00:00",
+      "pair": {
+        "label": "pg11_to_pg18",
+        "source": 11,
+        "target": 18
+      },
+      "started_at": "2026-05-12T19:53:37+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg12_to_pg13",
+      "duration_secs": 1.14,
+      "failure_reason": "PrismError: Prism task 7297c301-ea6a-44aa-96fb-fb32ffdc91a4 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:39+00:00",
+      "pair": {
+        "label": "pg12_to_pg13",
+        "source": 12,
+        "target": 13
+      },
+      "started_at": "2026-05-12T19:53:38+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg12_to_pg14",
+      "duration_secs": 1.25,
+      "failure_reason": "PrismError: Prism task ec905935-0112-4286-bfb2-41eec1fd1dcb ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:40+00:00",
+      "pair": {
+        "label": "pg12_to_pg14",
+        "source": 12,
+        "target": 14
+      },
+      "started_at": "2026-05-12T19:53:39+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg12_to_pg15",
+      "duration_secs": 1.23,
+      "failure_reason": "PrismError: Prism task fd853a76-3864-433e-95ae-f11412bf9030 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:41+00:00",
+      "pair": {
+        "label": "pg12_to_pg15",
+        "source": 12,
+        "target": 15
+      },
+      "started_at": "2026-05-12T19:53:40+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg12_to_pg16",
+      "duration_secs": 1.12,
+      "failure_reason": "PrismError: Prism task a580c3d2-73c8-480d-a2c2-887be0c8dd6e ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:42+00:00",
+      "pair": {
+        "label": "pg12_to_pg16",
+        "source": 12,
+        "target": 16
+      },
+      "started_at": "2026-05-12T19:53:41+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg12_to_pg17",
+      "duration_secs": 1.12,
+      "failure_reason": "PrismError: Prism task 7fc2f420-3ca3-4157-8479-d875c88d46ee ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:43+00:00",
+      "pair": {
+        "label": "pg12_to_pg17",
+        "source": 12,
+        "target": 17
+      },
+      "started_at": "2026-05-12T19:53:42+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg12_to_pg18",
+      "duration_secs": 1.12,
+      "failure_reason": "PrismError: Prism task 489d8de0-8b27-4319-aa6b-0aecf183a7b0 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:45+00:00",
+      "pair": {
+        "label": "pg12_to_pg18",
+        "source": 12,
+        "target": 18
+      },
+      "started_at": "2026-05-12T19:53:43+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg13_to_pg14",
+      "duration_secs": 1.18,
+      "failure_reason": "PrismError: Prism task df94159c-a449-4c25-a45b-5bb464fa8727 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:46+00:00",
+      "pair": {
+        "label": "pg13_to_pg14",
+        "source": 13,
+        "target": 14
+      },
+      "started_at": "2026-05-12T19:53:45+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg13_to_pg15",
+      "duration_secs": 1.11,
+      "failure_reason": "PrismError: Prism task bfdd7962-06ff-4842-9bef-db7081600ea3 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:47+00:00",
+      "pair": {
+        "label": "pg13_to_pg15",
+        "source": 13,
+        "target": 15
+      },
+      "started_at": "2026-05-12T19:53:46+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg13_to_pg16",
+      "duration_secs": 1.21,
+      "failure_reason": "PrismError: Prism task a23f8adf-78d3-4e4c-a710-a79878358c07 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:48+00:00",
+      "pair": {
+        "label": "pg13_to_pg16",
+        "source": 13,
+        "target": 16
+      },
+      "started_at": "2026-05-12T19:53:47+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg13_to_pg17",
+      "duration_secs": 1.13,
+      "failure_reason": "PrismError: Prism task 05d8ceec-1e9d-46e9-bbcd-ca7a9193720b ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:49+00:00",
+      "pair": {
+        "label": "pg13_to_pg17",
+        "source": 13,
+        "target": 17
+      },
+      "started_at": "2026-05-12T19:53:48+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg13_to_pg18",
+      "duration_secs": 1.22,
+      "failure_reason": "PrismError: Prism task c5b759af-2873-42d1-8774-e42295f7acd5 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:50+00:00",
+      "pair": {
+        "label": "pg13_to_pg18",
+        "source": 13,
+        "target": 18
+      },
+      "started_at": "2026-05-12T19:53:49+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg14_to_pg15",
+      "duration_secs": 1.18,
+      "failure_reason": "PrismError: Prism task bc48ea30-6aac-4d1f-ae2e-43ee7adc1568 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:52+00:00",
+      "pair": {
+        "label": "pg14_to_pg15",
+        "source": 14,
+        "target": 15
+      },
+      "started_at": "2026-05-12T19:53:50+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg14_to_pg16",
+      "duration_secs": 1.22,
+      "failure_reason": "PrismError: Prism task 3f4e4e82-1914-42d3-895d-e7332821e8c3 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:53+00:00",
+      "pair": {
+        "label": "pg14_to_pg16",
+        "source": 14,
+        "target": 16
+      },
+      "started_at": "2026-05-12T19:53:52+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg14_to_pg17",
+      "duration_secs": 1.24,
+      "failure_reason": "PrismError: Prism task de46a947-bcd7-43d3-aca9-f0aa0a002a2e ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:54+00:00",
+      "pair": {
+        "label": "pg14_to_pg17",
+        "source": 14,
+        "target": 17
+      },
+      "started_at": "2026-05-12T19:53:53+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg14_to_pg18",
+      "duration_secs": 1.15,
+      "failure_reason": "PrismError: Prism task af271e8f-930c-4d84-8807-087823437670 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:55+00:00",
+      "pair": {
+        "label": "pg14_to_pg18",
+        "source": 14,
+        "target": 18
+      },
+      "started_at": "2026-05-12T19:53:54+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg15_to_pg16",
+      "duration_secs": 1.12,
+      "failure_reason": "PrismError: Prism task 02049986-195f-4b5f-8b19-1eb706987e05 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:56+00:00",
+      "pair": {
+        "label": "pg15_to_pg16",
+        "source": 15,
+        "target": 16
+      },
+      "started_at": "2026-05-12T19:53:55+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg15_to_pg17",
+      "duration_secs": 1.12,
+      "failure_reason": "PrismError: Prism task b4a53e41-6c82-4464-9ac6-555f3b316f2b ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:58+00:00",
+      "pair": {
+        "label": "pg15_to_pg17",
+        "source": 15,
+        "target": 17
+      },
+      "started_at": "2026-05-12T19:53:56+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg15_to_pg18",
+      "duration_secs": 1.12,
+      "failure_reason": "PrismError: Prism task 5cfa904a-2c98-4535-a1dd-ccd533f5d2c0 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:53:59+00:00",
+      "pair": {
+        "label": "pg15_to_pg18",
+        "source": 15,
+        "target": 18
+      },
+      "started_at": "2026-05-12T19:53:58+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg16_to_pg17",
+      "duration_secs": 1.26,
+      "failure_reason": "PrismError: Prism task 458793b6-7486-4896-a793-9cca25df480a ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:54:00+00:00",
+      "pair": {
+        "label": "pg16_to_pg17",
+        "source": 16,
+        "target": 17
+      },
+      "started_at": "2026-05-12T19:53:59+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg16_to_pg18",
+      "duration_secs": 1.23,
+      "failure_reason": "PrismError: Prism task 09077ceb-a35b-49c5-82a3-b979d6f44794 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:54:01+00:00",
+      "pair": {
+        "label": "pg16_to_pg18",
+        "source": 16,
+        "target": 18
+      },
+      "started_at": "2026-05-12T19:54:00+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    },
+    {
+      "artifact_dir": "/Users/daniel.isaac/experiments/pg_upgrade_test_framework/results/pg17_to_pg18",
+      "duration_secs": 1.23,
+      "failure_reason": "PrismError: Prism task 982a1a7e-aabc-4179-8db4-ead87df67970 ended in FAILED: {'error_code': 17, 'error_detail': \"Cannot complete request in state InvalidState: Cannot restore snapshot when volume group is attached. Please detach volume group(s): b'ERA_newPostges11May_52591d7b' (f5811877-9d0e-4a87-9f71-2f64bebad7fc), b'ERA_Y01LJHXUN1_DATADG_VG_95a09a8b' (94c879c5-23a1-4b8f-87cb-980a3b7993bd), b'ERA_Y01LJHXUN1_LOGDG_VG_9850791c' (a44d3475-0eaf-4fcc-9db3-1fcdbf761e60)\"}",
+      "finished_at": "2026-05-12T19:54:02+00:00",
+      "pair": {
+        "label": "pg17_to_pg18",
+        "source": 17,
+        "target": 18
+      },
+      "started_at": "2026-05-12T19:54:01+00:00",
+      "status": "ERROR",
+      "upgrade_log_tail": [],
+      "validation": null
+    }
+  ],
+  "summary": {
+    "error": 28,
+    "failed": 0,
+    "passed": 0,
+    "skipped": 0,
+    "total": 28
+  }
+}

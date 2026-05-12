@@ -1,0 +1,12 @@
+src\tgt |  11  12  13  14  15  16  17  18
+-----------------------------------------
+   11   |  .   E   E   E   E   E   E   E
+   12   |  .   .   E   E   E   E   E   E
+   13   |  .   .   .   E   E   E   E   E
+   14   |  .   .   .   .   E   E   E   E
+   15   |  .   .   .   .   .   E   E   E
+   16   |  .   .   .   .   .   .   E   E
+   17   |  .   .   .   .   .   .   .   E
+   18   |  .   .   .   .   .   .   .   .
+
+Legend: P=passed  F=failed  E=error  -=skipped  .=N/A

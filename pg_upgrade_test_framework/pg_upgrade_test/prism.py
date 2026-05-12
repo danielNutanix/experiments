@@ -89,11 +89,26 @@ class PrismClient:
         for vm in entities:
             if vm.get("name") == name:
                 return vm
-        # Fallback: some PE versions ignore the filter param; scan results.
-        for vm in entities:
-            if vm.get("name") == name:
-                return vm
-        raise PrismError(f"VM '{name}' not found on Prism {self._host}")
+        # Help the operator: surface a few near-name candidates so a typo
+        # or forgotten --golden-vm-name flag is obvious from the error.
+        all_resp = _request(self._session, "GET",
+                            self._url("/PrismGateway/services/rest/v2.0/vms/"))
+        candidates = []
+        needle = name.lower()
+        for vm in _json(all_resp).get("entities", []):
+            vm_name = vm.get("name", "")
+            if not vm_name:
+                continue
+            if needle in vm_name.lower() or vm_name.lower() in needle:
+                candidates.append(vm_name)
+            if len(candidates) >= 5:
+                break
+        hint = ""
+        if candidates:
+            hint = (f" Did you mean one of: {', '.join(candidates)}? "
+                    f"Pass --golden-vm-name <name> (or set GOLDEN_VM_NAME).")
+        raise PrismError(
+            f"VM '{name}' not found on Prism {self._host}.{hint}")
 
     def get_vm(self, vm_uuid: str, *, include_disks: bool = True,
                include_nics: bool = True) -> Dict[str, Any]:

@@ -102,9 +102,10 @@ def _add_common_args(p: argparse.ArgumentParser) -> None:
         help="Comma-separated PostgreSQL versions to consider "
              f"(default: {','.join(str(v) for v in SUPPORTED_VERSIONS)})")
     g_versions.add_argument(
-        "--golden-vm-name", default=DEFAULT_GOLDEN_VM_NAME,
+        "--golden-vm-name",
+        default=os.environ.get("GOLDEN_VM_NAME", DEFAULT_GOLDEN_VM_NAME),
         help=f"Name of the single multi-version golden VM "
-             f"(default: '{DEFAULT_GOLDEN_VM_NAME}')")
+             f"(env: GOLDEN_VM_NAME; default: '{DEFAULT_GOLDEN_VM_NAME}')")
     g_versions.add_argument(
         "--baseline-snapshot", default=BASELINE_SNAPSHOT_NAME,
         help=f"Snapshot name on the golden VM (default: "
@@ -298,6 +299,12 @@ def _cmd_bootstrap(args: argparse.Namespace) -> int:
         print(f"  snapshot_uuid      : {status.snapshot_uuid}")
         print(f"  installed_versions : {installed}")
         print(f"  skipped_versions   : {skipped}")
+        print()
+        print("Next: run the matrix with the same --golden-vm-name, e.g.")
+        print(f"  pg-upgrade-test run \\")
+        print(f"    --prism-host {args.prism_host} \\")
+        print(f"    --prism-user {args.prism_user} \\")
+        print(f"    --golden-vm-name {status.vm_name}")
         return 0
     print(f"Bootstrap of '{status.vm_name}' FAILED: {status.failure_reason}")
     if status.installed_versions:
