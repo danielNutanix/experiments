@@ -40,6 +40,70 @@ The DBVM name is the only entity-level input. Everything else is derived:
 | New block device | diff of `lsblk` before/after the attach |
 | Mount point | `/usr/pgsql-<NEW_VER>` (RHEL) or `/usr/lib/postgresql/<NEW_VER>` (Debian) |
 
+## Configuration
+
+Every option below can be supplied via a CLI flag **or** the matching
+environment variable. Anything still missing at run time is prompted for
+interactively (passwords use `getpass`, never echoed, never logged).
+
+Legend: **Req** = ✓ required · ◐ conditionally required · — optional (a
+default is applied).
+
+### Credentials
+
+Three independent credential sets — they are *not* shared.
+
+| Req | Purpose | Flag | Env var | Default |
+|-----|---------|------|---------|---------|
+| ✓ | NDB host (FQDN or IP, no scheme needed) | `--ndb-host` | `NDB_HOST` | — |
+| ✓ | NDB username (HTTP Basic) | `--ndb-user` | `NDB_USER` | — |
+| ✓ | NDB password (prompted if unset) | `--ndb-password` | `NDB_PASSWORD` | — |
+| ✓ | Prism Element username | `--prism-user` | `PRISM_USER` | — |
+| ✓ | Prism Element password (prompted if unset) | `--prism-password` | `PRISM_PASSWORD` | — |
+| — | DBVM SSH username | `--ssh-user` | `DBVM_SSH_USER` | `era` |
+| ◐ | DBVM SSH password (one of `--ssh-password` or `--ssh-key` is required; mutually exclusive) | `--ssh-password` | `DBVM_SSH_PASSWORD` | — |
+| ◐ | DBVM SSH private key path (one of `--ssh-password` or `--ssh-key` is required; mutually exclusive) | `--ssh-key` | `DBVM_SSH_KEY` | — |
+| — | DBVM SSH port | `--ssh-port` | — | `22` |
+
+The Prism IP itself is **derived** from NDB (`/clusters/{nxClusterId}`),
+so you only need Prism *credentials*, not its address.
+
+### Target & versions
+
+| Req | Flag | Default | Description |
+|-----|------|---------|-------------|
+| ✓ | `--vm-name` | — | DBVM name as registered in NDB. |
+| — | `--old-version` | `15` | Source PostgreSQL major version. |
+| — | `--new-version` | `17` | Target PostgreSQL major version. |
+
+### Disk, snapshot & storage (all optional)
+
+| Req | Flag | Default | Description |
+|-----|------|---------|-------------|
+| — | `--disk-size-gb` | `20` | Size of the new disk created for the upgraded PG binaries. |
+| — | `--snapshot-name` | `pg_upgrade_pre_<unix_ts>` | Recovery snapshot name on Prism. |
+| — | `--storage-container` | auto | Prism storage container name. If omitted, the first non-reserved container (skipping `NutanixManagementShare`, `SelfServiceContainer`) is used. |
+| — | `--mount-point` | OS-derived | Where the new disk is mounted. Defaults to `/usr/pgsql-<NEW_VER>` (RHEL) or `/usr/lib/postgresql/<NEW_VER>` (Debian). |
+
+### Execution (all optional)
+
+| Req | Flag | Default | Description |
+|-----|------|---------|-------------|
+| — | `--upgrade-script` | `./pg_upgrade.sh` next to the orchestrator | Path to the `pg_upgrade.sh` to upload and run on the DBVM. |
+| — | `--insecure` | SSL verified | Disable TLS verification — typically needed for self-signed Prism / NDB lab certs. |
+| — | `-v`, `--verbose` | INFO | Enable DEBUG logging (including HTTP method/URL traces). |
+
+### Minimum required to launch
+
+| Required from you | Reason |
+|-------------------|--------|
+| `--ndb-host`, `--ndb-user`, `--ndb-password` | Talk to NDB |
+| `--prism-user`, `--prism-password` | Talk to Prism Element (IP is derived) |
+| `--ssh-password` **or** `--ssh-key` | Authenticate to the DBVM |
+| `--vm-name` | Identify the DBVM to upgrade |
+
+Everything else has a sensible default.
+
 ## Run
 
 `pyproject.toml` exposes a `pg-upgrade` console script:
@@ -59,9 +123,15 @@ uv run pg-upgrade                        \
 
 Equivalent: `uv run python pg_upgrade_orchestrator.py …`.
 
-Passwords for NDB / Prism / SSH can be supplied via env vars
-(`NDB_PASSWORD`, `PRISM_PASSWORD`, `DBVM_SSH_PASSWORD`) or interactively at
-the prompt — they are never echoed and never logged.
+### Env-var-only invocation
+
+```bash
+export NDB_HOST=10.x.y.z   NDB_USER=admin       NDB_PASSWORD=...
+export PRISM_USER=admin    PRISM_PASSWORD=...
+export DBVM_SSH_USER=era   DBVM_SSH_KEY=~/.ssh/era_dbvm
+
+uv run pg-upgrade --vm-name my-pg-dbvm --insecure
+```
 
 ## Notes
 
