@@ -23,8 +23,9 @@ import logging
 import os
 import sys
 import time
+from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Deque, Dict, Iterable, List, Optional, Tuple
 
 import paramiko
 import requests
@@ -196,10 +197,26 @@ def _request(session: requests.Session, method: str, url: str, *,
              timeout: int = 60, **kwargs: Any) -> requests.Response:
     LOGGER.debug("HTTP %s %s", method, url)
     response = session.request(method, url, timeout=timeout, **kwargs)
+    LOGGER.debug("HTTP %s %s -> %d\n%s",
+                 method, url, response.status_code, _format_body(response))
     if not response.ok:
         body = response.text[:500] if response.text else ""
         raise ApiError(f"{method} {url} -> {response.status_code}: {body}")
     return response
+
+
+def _format_body(response: requests.Response, *, limit: int = 2000) -> str:
+    """Pretty-print the response body for debug logs (JSON when possible)."""
+    text = response.text or ""
+    if not text:
+        return "  <empty body>"
+    try:
+        pretty = json.dumps(response.json(), indent=2, sort_keys=True)
+    except ValueError:
+        pretty = text
+    if len(pretty) > limit:
+        pretty = pretty[:limit] + f"\n... <truncated, total={len(pretty)} bytes>"
+    return "\n".join("  " + line for line in pretty.splitlines())
 
 
 def _json_or_raise(response: requests.Response) -> Any:
@@ -254,12 +271,12 @@ class NdbClient:
         return _json_or_raise(resp)
 
     def pause_time_machine(self, tm_id: str, nx_cluster_ids: List[str],
-                           reason: str) -> str:
+                           reason: str) -> Optional[str]:
         body = {"forced": False, "reason": reason, "nxClusterIds": nx_cluster_ids}
         return self._patch_tm(tm_id, "pause", body)
 
     def resume_time_machine(self, tm_id: str, nx_cluster_ids: List[str],
-                            reason: str) -> str:
+                            reason: str) -> Optional[str]:
         body = {
             "resetCapability": False,
             "skipSnapshot": False,
@@ -269,15 +286,29 @@ class NdbClient:
         }
         return self._patch_tm(tm_id, "resume", body)
 
-    def _patch_tm(self, tm_id: str, action: str, body: Dict[str, Any]) -> str:
+    def _patch_tm(self, tm_id: str, action: str,
+                  body: Dict[str, Any]) -> Optional[str]:
+        """Pause or resume a TM.
+
+        Returns the dispatched `operationId` to poll, or ``None`` when NDB
+        completed the action synchronously (e.g. the TM has no continuous
+        recovery enabled, so no log-catchup operation is dispatched). In that
+        case the response is a TaskInfoSummary with only a `message` field;
+        treating `entityId` (the TM ID) as an operation ID would cause a 500
+        from the subsequent `/operations/<id>` GET.
+        """
         resp = _request(self._session, "PATCH",
                         self._url(f"/tms/{tm_id}/{action}"),
                         data=json.dumps(body))
         payload = _json_or_raise(resp)
-        op_id = payload.get("operationId") or payload.get("entityId")
-        if not op_id:
-            raise ApiError(f"TM {action} did not return an operationId: {payload}")
-        return op_id
+        op_id = payload.get("operationId")
+        message = payload.get("message")
+        if op_id:
+            LOGGER.info("TM %s %s dispatched operation %s", tm_id, action, op_id)
+            return op_id
+        LOGGER.info("TM %s %s completed synchronously: %s",
+                    tm_id, action, message or payload)
+        return None
 
     def wait_for_operation(self, operation_id: str, *,
                            timeout: int = 1800, interval: int = 15) -> Dict[str, Any]:
@@ -477,8 +508,14 @@ class SshExecutor:
                 f"STDOUT: {out}\nSTDERR: {err}")
         return rc, out, err
 
-    def run_streaming(self, command: str, *, check: bool = True) -> int:
-        """Run a command and stream stdout/stderr line-by-line to logger.info."""
+    def run_streaming(self, command: str, *, check: bool = True,
+                      tail_lines: int = 40) -> Tuple[int, List[str]]:
+        """Run a command, stream output, and return (rc, last N output lines).
+
+        The tail is retained so callers can include the actual error context
+        in their failure message — useful when the remote script is run with
+        ``set -e`` and dies several screens above the exit point.
+        """
         LOGGER.info("SSH > %s", command)
         transport = self._client.get_transport()
         if transport is None:
@@ -487,13 +524,16 @@ class SshExecutor:
         channel.get_pty()
         channel.exec_command(command)
 
+        tail: Deque[str] = deque(maxlen=tail_lines)
         stdout_buf = b""
         stderr_buf = b""
         while True:
             if channel.recv_ready():
-                stdout_buf = self._drain(channel.recv, stdout_buf, sys.stdout)
+                stdout_buf = self._drain(channel.recv, stdout_buf,
+                                         sys.stdout, tail)
             if channel.recv_stderr_ready():
-                stderr_buf = self._drain(channel.recv_stderr, stderr_buf, sys.stderr)
+                stderr_buf = self._drain(channel.recv_stderr, stderr_buf,
+                                         sys.stderr, tail)
             if channel.exit_status_ready() and not channel.recv_ready() \
                     and not channel.recv_stderr_ready():
                 break
@@ -501,20 +541,37 @@ class SshExecutor:
 
         rc = channel.recv_exit_status()
         if check and rc != 0:
-            raise RuntimeError(f"Remote command failed (rc={rc}): {command}")
-        return rc
+            raise RuntimeError(self._format_remote_failure(command, rc, tail))
+        return rc, list(tail)
 
     @staticmethod
-    def _drain(reader: Any, buffer: bytes, sink: Any) -> bytes:
+    def _drain(reader: Any, buffer: bytes, sink: Any,
+               tail: Optional[Deque[str]] = None) -> bytes:
         chunk = reader(4096)
         if not chunk:
             return buffer
         buffer += chunk
         while b"\n" in buffer:
             line, _, buffer = buffer.partition(b"\n")
-            sink.write(line.decode("utf-8", errors="replace") + "\n")
+            decoded = line.decode("utf-8", errors="replace")
+            sink.write(decoded + "\n")
             sink.flush()
+            if tail is not None:
+                tail.append(decoded)
         return buffer
+
+    @staticmethod
+    def _format_remote_failure(command: str, rc: int,
+                               tail: Deque[str]) -> str:
+        if not tail:
+            return (f"Remote command failed (rc={rc}) with no captured output. "
+                    f"Command: {command}")
+        tail_block = "\n".join("  | " + line for line in tail)
+        return (
+            f"Remote command failed (rc={rc}): {command}\n"
+            f"--- last {len(tail)} lines of remote output ---\n"
+            f"{tail_block}\n"
+            f"--- end of remote output ---")
 
     def upload(self, local_path: str, remote_path: str, *,
                mode: int = 0o755) -> None:
@@ -567,18 +624,48 @@ def default_mount_point(os_family: str, new_version: int) -> str:
     return f"/usr/lib/postgresql/{new_version}"
 
 
+def rescan_scsi_hosts(ssh: SshExecutor) -> None:
+    """Force every SCSI host to rescan so newly-attached disks surface.
+
+    virtio-scsi hot-plug events on AHV guests are not always delivered to the
+    kernel synchronously; without a rescan, ``lsblk`` may not see the new
+    device for several seconds (or until a manual rescan).
+    """
+    cmd = (
+        "for host in /sys/class/scsi_host/host*/scan; do "
+        "echo '- - -' | sudo tee \"$host\" >/dev/null; "
+        "done"
+    )
+    ssh.run(cmd, check=False)
+
+
+def wait_for_new_block_device(ssh: SshExecutor, *, before: Iterable[str],
+                              timeout: int = 60, interval: int = 2) -> str:
+    """Poll ``lsblk`` until a disk appears that wasn't in ``before``."""
+    rescan_scsi_hosts(ssh)
+    before_set = set(before)
+    deadline = time.monotonic() + timeout
+    after: List[str] = []
+    while True:
+        after = list_block_devices(ssh)
+        new_devices = sorted(set(after) - before_set)
+        if new_devices:
+            if len(new_devices) > 1:
+                LOGGER.warning("Multiple new devices detected (%s); using first",
+                               new_devices)
+            return new_devices[0]
+        if time.monotonic() > deadline:
+            raise RuntimeError(
+                f"No new block device detected after {timeout}s. "
+                f"Before: {sorted(before)}, After: {after}")
+        time.sleep(interval)
+
+
 def prepare_new_disk(ssh: SshExecutor, *, before: Iterable[str],
-                     mount_point: str) -> DiskPlan:
+                     mount_point: str, settle_timeout: int = 60) -> DiskPlan:
     """Format and mount the freshly-attached disk, returning its details."""
 
-    after = list_block_devices(ssh)
-    new_devices = sorted(set(after) - set(before))
-    if not new_devices:
-        raise RuntimeError("No new block device detected after disk attach. "
-                           f"Before: {sorted(before)}, After: {after}")
-    if len(new_devices) > 1:
-        LOGGER.warning("Multiple new devices detected (%s); using first", new_devices)
-    device = new_devices[0]
+    device = wait_for_new_block_device(ssh, before=before, timeout=settle_timeout)
     LOGGER.info("New disk discovered: %s", device)
 
     ssh.run(f"sudo wipefs -a {device}")
@@ -633,11 +720,16 @@ def run_pg_upgrade_script(ssh: SshExecutor, *, local_script: str,
     command = (
         f"sudo OLD_VER={old_ver} NEW_VER={new_ver} bash -s < {remote_path}"
     )
-    rc = ssh.run_streaming(command, check=False)
+    rc, tail = ssh.run_streaming(command, check=False)
     if rc != 0:
+        tail_block = "\n".join("  | " + line for line in tail) or "  <empty>"
         raise RuntimeError(
             f"pg_upgrade.sh exited with rc={rc}. The Time Machine will be "
-            "resumed; the snapshot can be used for recovery.")
+            f"resumed; the recovery snapshot remains available for rollback.\n"
+            f"--- last {len(tail)} lines of pg_upgrade.sh output ---\n"
+            f"{tail_block}\n"
+            f"--- end of pg_upgrade.sh output ---")
+    LOGGER.info("pg_upgrade.sh completed successfully")
     ssh.run(f"rm -f {remote_path}", check=False)
 
 
@@ -719,7 +811,8 @@ def _pause_all_tms(ndb: NdbClient, tm_ids: List[str], nx_cluster_id: str,
     for tm_id in tm_ids:
         banner(f"Step 1: Pausing Time Machine {tm_id}")
         op_id = ndb.pause_time_machine(tm_id, [nx_cluster_id], reason=reason)
-        ndb.wait_for_operation(op_id)
+        if op_id:
+            ndb.wait_for_operation(op_id)
         paused.append(tm_id)
     return paused
 
@@ -730,7 +823,8 @@ def _resume_all_tms(ndb: NdbClient, tm_ids: List[str], nx_cluster_id: str,
         banner(f"Step 10: Resuming Time Machine {tm_id}")
         try:
             op_id = ndb.resume_time_machine(tm_id, [nx_cluster_id], reason=reason)
-            ndb.wait_for_operation(op_id)
+            if op_id:
+                ndb.wait_for_operation(op_id)
         except Exception as exc:  # noqa: BLE001 — best-effort resume
             LOGGER.error("Failed to resume TM %s: %s", tm_id, exc)
 
@@ -761,8 +855,8 @@ def _attach_upgrade_disk(prism: PrismClient, *, vm_uuid: str,
         device_index=index,
     )
     prism.wait_for_task(task_uuid)
-    # SCSI hot-plug surfacing on the guest can lag the Prism task completion.
-    time.sleep(5)
+    # The guest-side SCSI rescan + lsblk poll happens in
+    # ``wait_for_new_block_device`` after this returns.
     return container_uuid, index
 
 
@@ -790,20 +884,23 @@ def run(cfg: Config) -> None:
 
     paused_tms: List[str] = []
     try:
-        paused_tms = _pause_all_tms(ndb, targets.tm_ids,
-                                    targets.nx_cluster_id, reason)
-        _take_recovery_snapshot(prism, targets.vm_uuid, cfg.snapshot_name)
-        _attach_upgrade_disk(prism, vm_uuid=targets.vm_uuid,
-                             container_name=cfg.storage_container,
-                             size_gb=cfg.disk_size_gb)
-
+        # SSH is opened first so the pre-attach block-device snapshot is taken
+        # before Prism creates the new disk; otherwise the lsblk diff is empty
+        # and the orchestrator can't identify which device to format.
         with SshExecutor(targets.dbvm_ip, cfg.ssh_user, cfg.ssh_password,
                          cfg.ssh_key_path, cfg.ssh_port) as ssh:
-            before = list_block_devices(ssh)
-            # The disk attach above already completed; guest may need a moment
-            # to surface it. Re-list here so the diff is meaningful.
-            time.sleep(2)
-            _prepare_disk_on_dbvm(ssh, before_devices=before,
+            paused_tms = _pause_all_tms(ndb, targets.tm_ids,
+                                        targets.nx_cluster_id, reason)
+            _take_recovery_snapshot(prism, targets.vm_uuid, cfg.snapshot_name)
+
+            before_devices = list_block_devices(ssh)
+            LOGGER.info("Pre-attach block devices on DBVM: %s", before_devices)
+
+            _attach_upgrade_disk(prism, vm_uuid=targets.vm_uuid,
+                                 container_name=cfg.storage_container,
+                                 size_gb=cfg.disk_size_gb)
+
+            _prepare_disk_on_dbvm(ssh, before_devices=before_devices,
                                   new_version=cfg.new_pg_version,
                                   mount_override=cfg.mount_point)
 

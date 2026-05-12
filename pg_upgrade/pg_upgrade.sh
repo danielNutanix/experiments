@@ -2,6 +2,15 @@
 
 set -euxo pipefail
 
+# Surface the failing line + command + exit code before bash exits.
+# Without this, `set -e` failures (especially inside command substitutions
+# whose stderr is redirected) leave no trace beyond `rc=N`.
+# `:-?` defaults are required because `set -u` treats unset array elements
+# as unbound — accessing BASH_LINENO[0] bare can itself trigger an error
+# inside the trap and mask the real failure.
+trap 'ec=$?; printf "\n!!! pg_upgrade.sh FAILED at line %s: command \"%s\" exited with status %s !!!\n" \
+  "${BASH_LINENO[0]:-?}" "${BASH_COMMAND:-?}" "${ec}" >&2; exit "${ec}"' ERR
+
 # ============================================================
 # PostgreSQL ${OLD_VER} -> ${NEW_VER} Upgrade Script
 #
@@ -87,13 +96,16 @@ echo "Using SERVICE_NAME: $SERVICE_NAME"
 # the leading `/` skips variable references like `-D ${PGDATA}`).
 # ============================================================
 
+# `|| true` lets the assignments fall through gracefully when psql can't
+# connect or the systemd unit doesn't match either pattern. Without it,
+# `set -e + pipefail` kills the script silently on the failing pipeline.
 BASE_PGDATA=$(sudo -u postgres psql -tA -c "SHOW data_directory;" 2>/dev/null \
-  | tr -d '[:space:]')
+  | tr -d '[:space:]' || true)
 
 if [ -z "$BASE_PGDATA" ]; then
   BASE_PGDATA=$(grep -oP '^Environment=PGDATA=\K\S+|(?<=-D\s)/\S+' \
     "/etc/systemd/system/$SERVICE_NAME" 2>/dev/null \
-    | head -n1)
+    | head -n1 || true)
 fi
 
 if [ -z "$BASE_PGDATA" ]; then
@@ -177,10 +189,19 @@ esac
 # Install PostgreSQL packages
 # ============================================================
 
+# The orchestrator may mount a fresh filesystem on /usr/pgsql-$NEW_VER (or
+# /usr/lib/postgresql/$NEW_VER) BEFORE this step runs. If the new-version
+# packages were already installed earlier, the rpm/dpkg DB still says
+# "installed" and a plain install becomes a no-op, leaving the mount empty.
+# Reinstall the new-version packages so files are re-deposited onto the
+# freshly mounted filesystem.
 case "$OS_FAMILY" in
   debian)
     sudo apt-get install -y \
       postgresql-$OLD_VER \
+      postgresql-$NEW_VER \
+      postgresql-client-$NEW_VER
+    sudo apt-get install -y --reinstall \
       postgresql-$NEW_VER \
       postgresql-client-$NEW_VER
     ;;
@@ -188,6 +209,9 @@ case "$OS_FAMILY" in
     sudo dnf install -y \
       postgresql$OLD_VER \
       postgresql$OLD_VER-server \
+      postgresql$NEW_VER \
+      postgresql$NEW_VER-server
+    sudo dnf reinstall -y \
       postgresql$NEW_VER \
       postgresql$NEW_VER-server
     ;;
@@ -254,7 +278,7 @@ sudo -iu postgres
 
 export PGDATA=$(grep -oP '^Environment=PGDATA=\K\S+|(?<=-D\s)/\S+' \
   /etc/systemd/system/$SERVICE_NAME 2>/dev/null \
-  | head -n1)
+  | head -n1 || true)
 
 if [ -z "$PGDATA" ]; then
   echo "ERROR: Could not determine PGDATA from systemd unit"
