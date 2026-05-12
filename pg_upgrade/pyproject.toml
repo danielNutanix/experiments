@@ -1,0 +1,25 @@
+[project]
+name = "pg-upgrade-orchestrator"
+version = "0.1.0"
+description = "End-to-end PostgreSQL major-version upgrade orchestrator for an NDB-managed DBVM"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "era-dev", email = "era-dev@nutanix.com" }]
+dependencies = [
+    "requests>=2.31,<3",
+    "paramiko>=3.4,<4",
+    "urllib3>=1.26,<3",
+]
+
+[project.scripts]
+pg-upgrade = "pg_upgrade_orchestrator:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["pg_upgrade_orchestrator.py"]
+
+[tool.hatch.build.targets.wheel.sources]
+"pg_upgrade_orchestrator.py" = "pg_upgrade_orchestrator.py"
