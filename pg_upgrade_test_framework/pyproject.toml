@@ -1,0 +1,22 @@
+[project]
+name = "pg-upgrade-test"
+version = "0.1.0"
+description = "Automated PostgreSQL major-version upgrade compatibility testing on Nutanix Prism"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "era-dev", email = "era-dev@nutanix.com" }]
+dependencies = [
+    "requests>=2.31,<3",
+    "paramiko>=3.4,<4",
+    "urllib3>=1.26,<3",
+]
+
+[project.scripts]
+pg-upgrade-test = "pg_upgrade_test.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pg_upgrade_test"]
